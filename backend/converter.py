@@ -1,7 +1,10 @@
 from PIL import Image, UnidentifiedImageError
 import pillow_heif
 
-pillow_heif.register_heif_opener()
+try:
+    pillow_heif.register_heif_opener()
+except RuntimeError:
+    pass  # 已經註冊過
 SUPPORTED_FORMATS = ["png", "jpeg", "jpg", "webp", "heic"]
 OUTPUT_FORMATS = ["png", "jpeg", "jpg", "webp"]
 FORMAT_MAPPING = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
@@ -48,6 +51,12 @@ def convert_image(
 
         with Image.open(input_path) as img:
             # 處理格式與模式轉換
+
+            # Palette 圖片轉 RGBA，避免透明度警告
+            if img.mode == "P":
+                img = img.convert("RGBA")
+
+            # JPEG 不支援透明背景，轉白底 RGB
             if format in ("jpeg", "jpg"):
                 img = _handle_transparency(img)
             elif img.mode not in ("RGB", "RGBA", "L"):
