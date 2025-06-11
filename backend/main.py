@@ -5,7 +5,7 @@ import uuid
 from typing import Annotated, Literal, Optional, Tuple, Union
 
 from converter import OUTPUT_FORMATS, SUPPORTED_FORMATS, convert_image
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, field_validator
@@ -15,7 +15,7 @@ app = FastAPI()
 # CORS 設定，允許前端 Vite 連線
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,6 +30,16 @@ media_types = {
 
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
+
+
+def delete_file_safely(path: str):
+    """Deletes a file if it exists, logging any errors."""
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+            print(f"Cleaned up file: {path}")
+        except OSError as e:
+            print(f"Error deleting file {path}: {e}")
 
 
 # Pydantic 模型驗證 params
@@ -61,6 +71,7 @@ async def get_supported_formats():
 async def convert(
     file: Annotated[UploadFile, File()],
     params: Annotated[str, Form()],
+    background_tasks: BackgroundTasks,
 ):
     input_path = ""
     output_path = ""
@@ -97,12 +108,18 @@ async def convert(
             quality=options.quality,
         )
         print(f"Conversion completed: {output_path}")
+
+        # 背景刪除 output 檔案
+        background_tasks.add_task(delete_file_safely, output_path)
+
         # 回傳轉換後檔案
-        return FileResponse(
+        response = FileResponse(
             output_path,
             filename=f"converted.{options.format.lower()}",
             media_type=media_types[options.format.lower()],
         )
+
+        return response
 
     except HTTPException:
         raise
@@ -113,6 +130,8 @@ async def convert(
     finally:
         # 清理暫存檔案
         if input_path and os.path.exists(input_path):
-            os.remove(input_path)
-        # if output_path and os.path.exists(output_path):
-        #     os.remove(output_path)
+            try:
+                os.remove(input_path)
+                print(f"Cleaned up input file: {input_path}")
+            except OSError as e:
+                print(f"Error deleting input file {input_path}: {e}")
