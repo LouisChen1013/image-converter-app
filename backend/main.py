@@ -85,7 +85,7 @@ async def convert(
 
         if options.format.lower() not in OUTPUT_FORMATS:
             raise HTTPException(
-                status_code=400, detail="不支援的輸出格式，僅限 jpeg/png/webp"
+                status_code=400, detail="Only jpeg/png/webp output is supported."
             )
 
         # 儲存上傳檔案到暫存目錄
