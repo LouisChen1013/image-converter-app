@@ -1,0 +1,40 @@
+# === General ===
+.git
+.gitignore
+Dockerfile
+.dockerignore
+README.md
+
+# === Python / Backend ===
+backend/__pycache__/
+backend/*.py[cod]
+backend/*.log
+backend/*.db
+backend/*.sqlite3
+backend/*.sqlite3-journal
+backend/*.egg-info/
+backend/*.spec
+backend/.env
+backend/.env.*
+backend/venv/
+backend/.venv/
+backend/env/
+backend/ENV/
+backend/env.bak/
+backend/venv.bak/
+backend/temp/
+
+# === Node.js / Frontend ===
+frontend/node_modules/
+frontend/dist/
+# frontend/.env
+# frontend/.env.*.local
+
+# === System / IDE files ===
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*.orig
