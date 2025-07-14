@@ -27,7 +27,7 @@ A modern and intuitive web application to convert and optimize images directly i
 
   - FastAPI (Python)
   - Pillow (image processing)
-  - Uvicorn (ASGI server)
+  - uv
   - CORS support
 
 - **Containerization:**
@@ -61,13 +61,15 @@ docker compose down
 
 ### 4. Setup & Run Without Docker
 
-Backend (FastAPI)
+Backend (FastAPI + uv)
+
+Install uv (if not already installed)
+Follow the official installation instructions:  
+ 👉 <https://github.com/astral-sh/uv#installation>
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload
+uv sync
+uv run fastapi dev
 ```
 
 Backend runs at <http://localhost:8000>
