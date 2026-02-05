@@ -17,14 +17,12 @@ A modern and intuitive web application to convert and optimize images directly i
 ## Tech Stack
 
 - **Frontend:**
-
   - React (with Vite)
   - Tailwind CSS
   - React-Bootstrap
   - JSZip & FileSaver
 
 - **Backend:**
-
   - FastAPI (Python)
   - Pillow (image processing)
   - uv
@@ -81,4 +79,4 @@ npm install
 npm run dev
 ```
 
-Frontend runs at <http://localhost:5173>
+Frontend runs at <http://localhost:3000>
