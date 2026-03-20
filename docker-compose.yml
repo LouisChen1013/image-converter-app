@@ -1,4 +1,13 @@
 services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    restart: unless-stopped
   backend:
     build:
       context: .
@@ -9,8 +18,37 @@ services:
       - ./backend/temp:/app/temp
     environment:
       - PYTHONUNBUFFERED=1
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672// # Celery 連接 RabbitMQ 的通訊地址
+    depends_on:
+      - rabbitmq
     restart: unless-stopped
-
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: uv run celery -A celery_app worker --loglevel=info
+    volumes:
+      - ./backend/temp:/app/temp
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+      - backend
+    restart: unless-stopped
+  celery-beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: uv run celery -A celery_app beat -l info
+    volumes:
+      - ./backend/temp:/app/temp
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
   frontend:
     build:
       context: .

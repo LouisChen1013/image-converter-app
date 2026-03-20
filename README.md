@@ -1,18 +1,15 @@
 # Image Converter App
 
-A modern and intuitive web application to convert and optimize images directly in the browser. Built with FastAPI for the backend and React (Vite) for the frontend. Users can upload images, adjust conversion settings (format, resize, grayscale, quality), and download individual or zipped images after processing.
+A high-performance, asynchronous web application to convert and optimize images. Powered by FastAPI, Celery, and RabbitMQ to handle heavy image processing tasks in the background without blocking the UI.
 
 ## Features
 
-- Convert images to JPEG, PNG, or WebP
-- Optional resize with custom width and height
-- Convert to grayscale
-- Adjust image quality
-- Drag-and-drop or manual upload
-- Download converted files individually or all at once (as ZIP)
-- Clear results and re-upload
-- Fast, responsive UI built with React + Tailwind CSS + React-Bootstrap
-- Backend processing with FastAPI
+- Asynchronous Processing: Large batches of images are processed in the background via Celery workers.
+- Real-time Updates: Track conversion progress and status via WebSockets.
+- Flexible Conversion: Support for JPEG, PNG, and WebP formats.
+- Image Optimization: Optional resizing, grayscale conversion, and quality adjustment.
+- Batch Download: Download results individually or as a single ZIP file.
+- Containerized Architecture: Fully dockerized for easy scaling of worker nodes.
 
 ## Tech Stack
 
@@ -28,9 +25,26 @@ A modern and intuitive web application to convert and optimize images directly i
   - uv
   - CORS support
 
+- **Task Queue & Broker**
+  - RabbitMQ
+  - Celery
+  - Celery Beat
+
 - **Containerization:**
   - Docker
   - Docker Compose
+
+## System Architecture
+
+The application follows a producer-consumer pattern:
+
+1. Producer (FastAPI): Receives image uploads, generates unique Task IDs, and pushes tasks into the RabbitMQ queue.
+
+2. Message Broker (RabbitMQ): Manages the task distribution and ensures message reliability.
+
+3. Consumer (Celery Worker): Listens to the queue, performs heavy image processing, and saves results.
+
+4. WebSocket Manager: Notifies the frontend immediately when a task status changes to SUCCESS.
 
 ## Setup & Run with Docker Compose
 
@@ -71,6 +85,13 @@ uv run fastapi dev
 ```
 
 Backend runs at <http://localhost:8000>
+
+Celery
+
+```bash
+uv run celery -A celery_app worker --loglevel=info
+uv run celery -A celery_app beat --loglevel=info
+```
 
 Frontend (React + Vite)
 

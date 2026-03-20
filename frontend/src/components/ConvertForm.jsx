@@ -8,7 +8,7 @@ export default function ConvertForm({ files, onConvert, supportedFormats }) {
   const [quality, setQuality] = useState(80);
   const [formError, setFormError] = useState(null);
 
-  // 當傳入的檔案列表改變時，清除任何表單錯誤訊息。
+  // 當檔案列表變動時，重置錯誤訊息
   useEffect(() => {
     setFormError(null);
   }, [files]);
@@ -22,47 +22,50 @@ export default function ConvertForm({ files, onConvert, supportedFormats }) {
       return;
     }
 
-    let resizeParam;
-    if (resize.width || resize.height) {
-      const parsedWidth = parseInt(resize.width);
-      const parsedHeight = parseInt(resize.height);
+    // --- 尺寸邏輯處理 ---
+    let resizeParam = null;
+    const w = parseInt(resize.width);
+    const h = parseInt(resize.height);
 
+    if (resize.width || resize.height) {
       if (
-        (resize.width && (isNaN(parsedWidth) || parsedWidth <= 0)) ||
-        (resize.height && (isNaN(parsedHeight) || parsedHeight <= 0))
+        (resize.width && (isNaN(w) || w <= 0)) ||
+        (resize.height && (isNaN(h) || h <= 0))
       ) {
         setFormError("Width and height must be valid positive numbers.");
         return;
       }
 
-      if (resize.width && resize.height) {
-        resizeParam = [parsedWidth, parsedHeight];
-      }
+      // 這裡改為傳送 [width, height]，若其中一個沒填則傳 null
+      // 這樣後端的 converter.py 才能正確處理等比縮放
+      resizeParam = [resize.width ? w : null, resize.height ? h : null];
     }
 
+    // --- 品質邏輯處理 ---
     const parsedQuality = parseInt(quality);
     if (isNaN(parsedQuality) || parsedQuality < 1 || parsedQuality > 100) {
       setFormError("Quality must be a number between 1 and 100.");
       return;
     }
 
+    // 建立參數物件
     const params = {
       format,
+      // 只有當使用者有輸入尺寸時才加入 resize 欄位
       ...(resizeParam ? { resize: resizeParam } : {}),
       grayscale,
       quality: parsedQuality,
     };
 
-    // 使用父元件傳遞下來的 onConvert 函數轉換
+    // 呼叫 App.jsx 的 handleConvert，開始執行 WebSocket 流程
     onConvert(files, params);
   };
 
-  // 判斷是否禁用提交按鈕：無檔案時禁用
   const isSubmitDisabled = !files || files.length === 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 mt-10 w-full">
-      {/* 表單錯誤訊息 */}
+      {/* Error Message */}
       {formError && (
         <div
           className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-md relative"
@@ -79,13 +82,13 @@ export default function ConvertForm({ files, onConvert, supportedFormats }) {
         </div>
       )}
 
-      {/* 格式選擇 */}
+      {/* Format Selection */}
       <label className="block text-gray-700 font-medium text-base">
-        Format
+        Target Format
         <select
           value={format}
           onChange={(e) => setFormat(e.target.value)}
-          className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           {supportedFormats.map((fmt) => (
             <option key={fmt} value={fmt}>
@@ -95,45 +98,44 @@ export default function ConvertForm({ files, onConvert, supportedFormats }) {
         </select>
       </label>
 
-      {/* 尺寸輸入區域 */}
+      {/* Resize Input */}
       <div className="flex gap-6">
         <label className="flex-1 text-gray-700 font-medium text-base">
-          Width
+          Width (px)
           <input
             type="number"
             min="1"
             value={resize.width}
             onChange={(e) => setResize({ ...resize, width: e.target.value })}
-            placeholder="Width px (optional)"
-            className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Optional"
+            className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </label>
-
         <label className="flex-1 text-gray-700 font-medium text-base">
-          Height
+          Height (px)
           <input
             type="number"
             min="1"
             value={resize.height}
             onChange={(e) => setResize({ ...resize, height: e.target.value })}
-            placeholder="Height px (optional)"
-            className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Optional"
+            className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </label>
       </div>
 
-      {/* 灰階選項 */}
-      <label className="flex items-center gap-3 text-gray-700 font-medium text-base">
+      {/* Grayscale Toggle */}
+      <label className="flex items-center gap-3 text-gray-700 font-medium text-base cursor-pointer">
         <input
           type="checkbox"
           checked={grayscale}
           onChange={(e) => setGrayscale(e.target.checked)}
           className="h-5 w-5 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
         />
-        <span>Grayscale</span>
+        <span>Apply Grayscale Filter</span>
       </label>
 
-      {/* 品質輸入 */}
+      {/* Quality Slider/Input */}
       <label className="block text-gray-700 font-medium text-base">
         Quality (1–100)
         <input
@@ -142,20 +144,16 @@ export default function ConvertForm({ files, onConvert, supportedFormats }) {
           max="100"
           value={quality}
           onChange={(e) => setQuality(e.target.value)}
-          className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          className="mt-2 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </label>
 
-      {/* 提交按鈕 */}
+      {/* Submit Button */}
       <button
         type="submit"
         disabled={isSubmitDisabled}
-        className={`w-full py-4 rounded-md font-semibold text-xl transition duration-200 ease-in-out
-          ${
-            isSubmitDisabled
-              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
+        className={`w-full py-4 rounded-md font-semibold text-xl transition duration-200 
+          ${isSubmitDisabled ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
       >
         Start Conversion
       </button>

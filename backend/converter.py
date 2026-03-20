@@ -1,3 +1,4 @@
+import os
 from PIL import Image, UnidentifiedImageError
 import pillow_heif
 
@@ -48,6 +49,10 @@ def convert_image(
         format = format.lower()
         if format not in OUTPUT_FORMATS:
             raise ValueError(f"Unsupported format: {format}")
+
+        output_dir = os.path.dirname(output_path)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
 
         with Image.open(input_path) as img:
             # 處理格式與模式轉換
